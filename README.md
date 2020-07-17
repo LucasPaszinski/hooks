@@ -16,6 +16,6 @@
 * Try to Commit without any tags
 * Error should be throw and you should not be able to commit.
 
-## 🎉🎉🎉🎉 Thats It's Enjoy !  🎉🎉🎉🎉
+## 🎉🎉🎉🎉 Thats It Enjoy !  🎉🎉🎉🎉
 
 

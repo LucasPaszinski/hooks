@@ -14,7 +14,6 @@ def validate_commit_message():
     is_valid_r_notes_tag, is_r_notes = check_valid_r_notes_hashtag(msg_text)
 
     if not is_valid_email_tag or not is_valid_r_notes_tag:
-        print("NANI")
         sys.exit(1)
 
     check_correct_files_changed(is_email, is_r_notes)
@@ -57,7 +56,6 @@ def _has_valid_tag_hashtag(msg, tag_base_name):
 
 def check_correct_files_changed(is_email, is_release_notes):
     if not _changed_correct_files(is_email, is_release_notes):
-        print("NAANI")
         sys.exit(1)
 
 

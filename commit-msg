@@ -6,29 +6,48 @@ import subprocess
 
 
 def validate_commit_message():
+    """Check if the commit message is a valid one."""
     hook_file, msg_file_path = sys.argv
 
-    msg_text = open(msg_file_path).read()
+    commit_msg = open(msg_file_path).read()
 
-    is_valid_email_tag, is_email = check_valid_email_hashtag(msg_text)
-    is_valid_r_notes_tag, is_r_notes = check_valid_r_notes_hashtag(msg_text)
+    is_valid_email_tag, is_email = check_valid_email_hashtag(commit_msg)
+    is_valid_r_notes_tag, is_r_notes = \
+        check_valid_release_notes_hashtag(commit_msg)
 
-    if not is_valid_email_tag or not is_valid_r_notes_tag:
+    if (not is_valid_email_tag
+        or not is_valid_r_notes_tag
+            or is_release_notes_without_email(is_email, is_r_notes)):
         sys.exit(1)
 
     check_correct_files_changed(is_email, is_r_notes)
     print(f"Nothing Wrong with commit message!")
 
 
+def is_release_notes_without_email(is_email, is_release_notes):
+    """Check forthe invalid condition of being #release_notes but #no_email"""
+    if is_release_notes and not is_email:
+        print("Release Notes should go to Email too")
+        return True
+    return False
+
+
 def check_valid_email_hashtag(msg):
-    return _has_valid_tag_hashtag(msg, "email")
+    '''Check if commit msg has a valid email hashtag'''
+    return _has_valid_hashtag(msg, "email")
 
 
-def check_valid_r_notes_hashtag(msg):
-    return _has_valid_tag_hashtag(msg, "release_notes")
+def check_valid_release_notes_hashtag(msg):
+    '''Check if commit msg has a valid release notes hashtag'''
+    return _has_valid_hashtag(msg, "release_notes")
 
 
-def _has_valid_tag_hashtag(msg, tag_base_name):
+def _has_valid_hashtag(msg, tag_base_name):
+    """Check if commit message has specific tag by passing the commit message text as 'msg' and
+    the tag base name without the '# 'and '#no_' as tag_base_name
+
+    Ex.: _has_valid_hashtag("Blá blá blá #email", "email")
+    """
     tag = f"#{tag_base_name}"
     no_tag = f"#no_{tag_base_name}"
 
@@ -55,34 +74,34 @@ def _has_valid_tag_hashtag(msg, tag_base_name):
 
 
 def check_correct_files_changed(is_email, is_release_notes):
-    if not _changed_correct_files(is_email, is_release_notes):
+    '''if is masked with #email and #release_notes check 
+    if the correct files were changes along with it too'''
+    staged_files = _get_staged_files()
+
+    correct_email = _is_correct_files_updated(
+        "email", branch, staged_files) if is_email else True
+
+    is_release_notes_correct = _is_correct_files_updated(
+        "release_notes", branch, staged_files) if is_release_notes else True
+
+    if not correct_email or not is_release_notes_correct:
         sys.exit(1)
 
 
-def _changed_correct_files(is_email, is_release_notes):
-    branch = _get_current_branch()
-    staged_files = _get_staged_files()
-    
-    if is_email:
-        is_email_correct = _is_correct_files_updated("email", branch, staged_files)
-    if is_release_notes:
-        is_release_notes_correct = _is_correct_files_updated("release_notes", branch, staged_files)
-
-    return is_email_correct and is_release_notes_correct
-        
-
 def _is_correct_files_updated(base_name, branch, staged_files):
+    '''Check for given tag if associated branch file was staged
+    Ex: base_name=email, branch=dev -> check if next_version_email_dev.md is modified and staged'''
     base_file = f"next_version_{base_name}_{branch}.md"
 
     if not staged_files.__contains__(['M', base_file]):
-            print(f"\nERROR: The commit message is marked as #{base_name}, so you must update the file '{base_file}' with information about your implementation.\n")
-            return False
+        print(
+            f"\nERROR: The commit message is marked as #{base_name}, so you must update the file '{base_file}' with information about your implementation.\n")
+        return False
     return True
 
 
-
-
 def _get_current_branch():
+    '''return the current branch'''
     process = subprocess.Popen(["git", "rev-parse", "--abbrev-ref", "HEAD", "--"],
                                shell=False, stdout=subprocess.PIPE)
     output = process.communicate()[0]
@@ -92,6 +111,7 @@ def _get_current_branch():
 
 
 def _get_staged_files():
+    '''return a list of current staged files for this commit'''
     process = subprocess.Popen(["git", "diff", "--cached", "--name-status"],
                                shell=False, stdout=subprocess.PIPE)
     output = process.communicate()[0]

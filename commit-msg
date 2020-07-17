@@ -1,0 +1,106 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+import subprocess
+
+
+def validate_commit_message():
+    hook_file, msg_file_path = sys.argv
+
+    msg_text = open(msg_file_path).read()
+
+    is_valid_email_tag, is_email = check_valid_email_hashtag(msg_text)
+    is_valid_r_notes_tag, is_r_notes = check_valid_r_notes_hashtag(msg_text)
+
+    if not is_valid_email_tag or not is_valid_r_notes_tag:
+        print("NANI")
+        sys.exit(1)
+
+    check_correct_files_changed(is_email, is_r_notes)
+    print(f"Nothing Wrong with commit message!")
+
+
+def check_valid_email_hashtag(msg):
+    return _has_valid_tag_hashtag(msg, "email")
+
+
+def check_valid_r_notes_hashtag(msg):
+    return _has_valid_tag_hashtag(msg, "release_notes")
+
+
+def _has_valid_tag_hashtag(msg, tag_base_name):
+    tag = f"#{tag_base_name}"
+    no_tag = f"#no_{tag_base_name}"
+
+    is_tag = str(msg).__contains__(tag)
+    is_no_tag = str(msg).__contains__(no_tag)
+
+    if is_tag and is_no_tag:
+        print(
+            f"\n\nERROR: You can {no_tag} or {tag}, you can't have both\n\n")
+        return False, False
+
+    elif is_tag:
+        return True, True
+
+    elif is_no_tag:
+        return True, False
+
+    elif not is_tag and not is_no_tag:
+        print(
+            f"""\nERROR: Your commit message need to have one {tag_base_name} hashtag like:
+              * {no_tag},
+              * {tag}\n""")
+        return False, False
+
+
+def check_correct_files_changed(is_email, is_release_notes):
+    if not _changed_correct_files(is_email, is_release_notes):
+        print("NAANI")
+        sys.exit(1)
+
+
+def _changed_correct_files(is_email, is_release_notes):
+    branch = _get_current_branch()
+    staged_files = _get_staged_files()
+    
+    if is_email:
+        is_email_correct = _is_correct_files_updated("email", branch, staged_files)
+    if is_release_notes:
+        is_release_notes_correct = _is_correct_files_updated("release_notes", branch, staged_files)
+
+    return is_email_correct and is_release_notes_correct
+        
+
+def _is_correct_files_updated(base_name, branch, staged_files):
+    base_file = f"next_version_{base_name}_{branch}.md"
+
+    if not staged_files.__contains__(['M', base_file]):
+            print(f"\nERROR: The commit message is marked as #{base_name}, so you must update the file '{base_file}' with information about your implementation.\n")
+            return False
+    return True
+
+
+
+
+def _get_current_branch():
+    process = subprocess.Popen(["git", "rev-parse", "--abbrev-ref", "HEAD", "--"],
+                               shell=False, stdout=subprocess.PIPE)
+    output = process.communicate()[0]
+    out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
+    out_text = [l.split("\\t") for l in out_text]
+    return out_text[0][0]
+
+
+def _get_staged_files():
+    process = subprocess.Popen(["git", "diff", "--cached", "--name-status"],
+                               shell=False, stdout=subprocess.PIPE)
+    output = process.communicate()[0]
+    out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
+    out_text = [l.split("\\t") for l in out_text]
+    return out_text
+
+
+if __name__ == "__main__":
+    validate_commit_message()

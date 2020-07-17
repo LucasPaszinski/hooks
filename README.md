@@ -4,7 +4,7 @@
 
 * Hooks should be a sub-repository used by all your Repositories
 
-## 2. Remember to have python installed and the path environment variable set 🐍:
+## 2. Remember to have python installed and the path environment variable set 🐍
 
 
 ## 3. Run this command to set new Hooks path:

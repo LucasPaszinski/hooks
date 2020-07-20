@@ -3,42 +3,22 @@
 import argparse
 import sys
 import subprocess
+import tags
 
-debug = False
+debug = True
+
+if debug:
+    import random
+    random_bool = bool(random.getrandbits(1))
 
 current_branch = None
 
-email_hashtag = {"group": "email",
-                 "tag": "#email",
-                 "required_files": ["email_OVERRIDEWITHBRANCHNAME.md"],
-                 "cannot_coexist": ["#no_email"]}
-
-no_email_hashtag = {"group": "email",
-                    "tag": "#no_email",
-                    "required_files": [],
-                    "cannot_coexist": ["#email", "#release_notes"]}
-
-release_notes_hashtag = {"group": "release_notes",
-                         "tag": "#release_notes",
-                         "required_files": ["release_notes_OVERRIDEWITHBRANCHNAME.md"],
-                         "cannot_coexist": ["#no_release_notes", "#no_email"]}
-
-no_release_notes_hashtag = {"group": "release_notes",
-                            "tag": "#no_release_notes",
-                            "required_files": [],
-                            "cannot_coexist": ["#release_notes"]}
-
-# to mutate
-all_hashtags = [email_hashtag, no_email_hashtag,
-                release_notes_hashtag, no_release_notes_hashtag]
-
-# don't mutate this
-_all_hashtags = [email_hashtag, no_email_hashtag,
-                 release_notes_hashtag, no_release_notes_hashtag]
+# copy to mutate
+all_hashtags = tags.all_hashtags()
 
 
 def validate():
-    global all_hashtags   
+    global all_hashtags
 
     msg_file_path = ".\\msg.txt" if debug else sys.argv[1]
     commit_msg = open(msg_file_path).read()
@@ -64,10 +44,10 @@ def get_all_group_tags(all_hashtags):
 
 def hashtag_inside_msg(commit_msg, all_hashtags):
     for hashtag in all_hashtags:
-    if commit_msg.__contains__(hashtag["tag"]):
-        hashtag["is_in_commit_msg"] = True
-    else:
-        hashtag["is_in_commit_msg"] = False
+        if commit_msg.__contains__(hashtag["tag"]):
+            hashtag["is_in_commit_msg"] = True
+        else:
+            hashtag["is_in_commit_msg"] = False
 
 
 def remove_hashtags_not_in_msg(all_hashtags):
@@ -81,7 +61,7 @@ def remove_hashtags_not_in_msg(all_hashtags):
 
 def at_least_one_of_each_group(remaning_hashtags):
     has_error = False
-    all_group_tags = get_all_group_tags(_all_hashtags)
+    all_group_tags = get_all_group_tags(tags.all_hashtags())
     for hashtag in remaning_hashtags:
         if all_group_tags.__contains__(hashtag["group"]):
             all_group_tags.remove(hashtag["group"])
@@ -89,7 +69,7 @@ def at_least_one_of_each_group(remaning_hashtags):
         for i in all_group_tags:
             has_error = True
             print(f"\nERROR: missing #hashtag of group {i}, use:")
-            for hashtag in _all_hashtags:
+            for hashtag in tags.all_hashtags():
                 if hashtag["group"] == i:
                     tag_name = hashtag["tag"]
                     print(f"\t\t*{tag_name}")
@@ -155,7 +135,7 @@ def replace_placeholder_value(text):
 def _get_current_branch():
     '''return the current branch'''
     if debug:
-        return "Dev"
+        return "dev"
 
     global current_branch
     if current_branch == None:
@@ -163,7 +143,7 @@ def _get_current_branch():
                                    shell=False, stdout=subprocess.PIPE)
         output = process.communicate()[0]
         out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
-        out_text = [l.split("\\t") for l in out_text]        
+        out_text = [l.split("\\t") for l in out_text]
 
         current_branch = out_text[0][0]
 
@@ -172,15 +152,21 @@ def _get_current_branch():
 
 
 def _get_staged_files():
-    if debug:
-        return [["M", "release_notes_Dev.md"], ["M", "email_Dev.md"]]
     '''return a list of current staged files for this commit'''
+    if debug:
+        return [] if random_bool else [
+            ["M", "release_notes_dev.md"],
+            ["M", "email_dev.md"],
+            []
+        ]
+
     process = subprocess.Popen(["git", "diff", "--cached", "--name-status"],
                                shell=False, stdout=subprocess.PIPE)
+
     output = process.communicate()[0]
     out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
     out_text = [l.split("\\t") for l in out_text]
-    
+
     return out_text
 
 

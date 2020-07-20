@@ -33,16 +33,9 @@ def validate():
     sys.exit(0)
 
 
-def get_all_group_tags(all_hashtags):
-    all_groups = []
-    for hashtag in all_hashtags:
-        group_value = hashtag["group"]
-        if not all_groups.__contains__(group_value):
-            all_groups.append(group_value)
-    return all_groups
-
-
 def hashtag_inside_msg(commit_msg, all_hashtags):
+    """Add value 'is_in_commit_msg' on the list of dict,
+    True if is present on commit text, False otherwise"""
     for hashtag in all_hashtags:
         if commit_msg.__contains__(hashtag["tag"]):
             hashtag["is_in_commit_msg"] = True
@@ -51,6 +44,8 @@ def hashtag_inside_msg(commit_msg, all_hashtags):
 
 
 def remove_hashtags_not_in_msg(all_hashtags):
+    '''Check the key - is_in_commit_msg if its value True
+     keep the dict on the list, if is False remove it from list'''
     not_in_commit_msg = []
     for hashtag in all_hashtags:
         if hashtag["is_in_commit_msg"] == False:
@@ -59,7 +54,19 @@ def remove_hashtags_not_in_msg(all_hashtags):
         all_hashtags.remove(not_in_commit)
 
 
+def get_all_group_tags(all_hashtags):
+    '''Get all the group tags from inside a list of Hashtags'''
+    all_groups = []
+    for hashtag in all_hashtags:
+        group_value = hashtag["group"]
+        if not all_groups.__contains__(group_value):
+            all_groups.append(group_value)
+    return all_groups
+
+
 def at_least_one_of_each_group(remaning_hashtags):
+    '''Check if remaning_tags contain 
+    at least one of each hashtag group, throw error if does not'''
     has_error = False
     all_group_tags = get_all_group_tags(tags.all_hashtags())
     for hashtag in remaning_hashtags:
@@ -78,6 +85,7 @@ def at_least_one_of_each_group(remaning_hashtags):
 
 
 def can_hashtags_coexist(all_hashtags):
+    '''Check if all remaning tags can coexist, throw error if they can't'''
     cannot_exist = []
     has_error = False
 
@@ -106,6 +114,8 @@ def can_hashtags_coexist(all_hashtags):
 
 
 def required_files_modified_and_staged(all_hashtags):
+    '''See if all the required files needed by 
+    the remaning hashags are staged and modified'''
     has_error = False
     staged_files = _get_staged_files()
 
@@ -127,6 +137,7 @@ def required_files_modified_and_staged(all_hashtags):
 
 
 def replace_placeholder_value(text):
+    '''replace the OVERRIDE values on dynamic filenames'''
     branch = _get_current_branch()
     text = str(text).replace("OVERRIDEWITHBRANCHNAME", branch)
     return text

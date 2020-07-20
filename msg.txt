@@ -1,0 +1,6 @@
+Here goes the text for test and debug, you can use to check
+the logics and tag. To use dnt forget to uncomment the debug line
+and comment the production line.
+
+#email
+#release_notes

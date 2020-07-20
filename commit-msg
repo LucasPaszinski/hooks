@@ -4,121 +4,192 @@ import argparse
 import sys
 import subprocess
 
+debug = False
 
-def validate_commit_message():
-    """Check if the commit message is a valid one."""
-    hook_file, msg_file_path = sys.argv
+current_branch = None
+
+email_hashtag = {"group": "email",
+                 "tag": "#email",
+                 "required_files": ["email_OVERRIDEWITHBRANCHNAME.md"],
+                 "cannot_coexist": ["#no_email"]}
+
+no_email_hashtag = {"group": "email",
+                    "tag": "#no_email",
+                    "required_files": [],
+                    "cannot_coexist": ["#email", "#release_notes"]}
+
+release_notes_hashtag = {"group": "release_notes",
+                         "tag": "#release_notes",
+                         "required_files": ["release_notes_OVERRIDEWITHBRANCHNAME.md"],
+                         "cannot_coexist": ["#no_release_notes", "#no_email"]}
+
+no_release_notes_hashtag = {"group": "release_notes",
+                            "tag": "#no_release_notes",
+                            "required_files": [],
+                            "cannot_coexist": ["#release_notes"]}
+
+# to mutate
+all_hashtags = [email_hashtag, no_email_hashtag,
+                release_notes_hashtag, no_release_notes_hashtag]
+
+# don't mutate this
+_all_hashtags = [email_hashtag, no_email_hashtag,
+                 release_notes_hashtag, no_release_notes_hashtag]
+
+
+def validate():
+    if debug:
+        msg_file_path = ".\\msg.txt"
+    else:
+        hook_file, msg_file_path = sys.argv
 
     commit_msg = open(msg_file_path).read()
 
-    is_valid_email_tag, is_email = check_valid_email_hashtag(commit_msg)
-    is_valid_r_notes_tag, is_r_notes = \
-        check_valid_release_notes_hashtag(commit_msg)
+    global all_hashtags
 
-    if (not is_valid_email_tag
-        or not is_valid_r_notes_tag
-            or is_release_notes_without_email(is_email, is_r_notes)):
+    for hashtag in all_hashtags:
+        hashtag_on_msg(commit_msg, hashtag)
+
+    all_group_tags = get_all_group_tags(all_hashtags)
+
+    all_hashtags = remove_hashtags_not_in_msg(all_hashtags)
+
+    at_least_one_of_each_group(all_hashtags, all_group_tags)
+    can_hashtags_coexist(all_hashtags)
+    required_files_modified_and_staged(all_hashtags)
+
+    print("\nNice! Everything is fine with this commit message!")
+    sys.exit(0)
+
+
+def get_all_group_tags(all_hashtags):
+    all_groups = []
+    for hashtag in all_hashtags:
+        group_value = hashtag["group"]
+        if not all_groups.__contains__(group_value):
+            all_groups.append(group_value)
+    return all_groups
+
+
+def hashtag_on_msg(commit_msg, hashtag):
+    if commit_msg.__contains__(hashtag["tag"]):
+        hashtag["is_in_commit_msg"] = True
+    else:
+        hashtag["is_in_commit_msg"] = False
+
+
+def remove_hashtags_not_in_msg(all_hashtags):
+    newall = []
+    for hashtag in all_hashtags:
+        if hashtag["is_in_commit_msg"] == True:
+            newall.append(hashtag)
+    return newall
+
+
+def at_least_one_of_each_group(remaning_hashtags, all_group_tags):
+    has_error = False
+    all_group_tags = list(all_group_tags)
+    for hashtag in remaning_hashtags:
+        if all_group_tags.__contains__(hashtag["group"]):
+            all_group_tags.remove(hashtag["group"])
+    if all_group_tags != []:
+        for i in all_group_tags:
+            has_error = True
+            print(f"\nERROR: missing #hashtag of group {i}, use:")
+            for hashtag in _all_hashtags:
+                if hashtag["group"] == i:
+                    tag_name = hashtag["tag"]
+                    print(f"\t\t*{tag_name}")
+    if has_error:
         sys.exit(1)
 
-    check_correct_files_changed(is_email, is_r_notes)
-    print(f"Nothing Wrong with commit message!")
+
+def can_hashtags_coexist(all_hashtags):
+    cannot_exist = []
+    has_error = False
+
+    # build list
+    for hashtag in all_hashtags:
+        hash_cannot_coexist = hashtag["cannot_coexist"]
+        if hash_cannot_coexist != []:
+            for cannot in hash_cannot_coexist:
+                if not cannot_exist.__contains__(cannot):
+                    cannot_exist.append(cannot)
+    # check if a cannot exist exist
+    for hashtag in all_hashtags:
+        tag = hashtag["tag"]
+        cannot_coexist = hashtag["cannot_coexist"]
+        if cannot_exist.__contains__(tag):
+            has_error = True
+            print(
+                f"\nERROR: The hashtag {tag} cannot coexist with the following:")
+            remaining_tags = [hashtag["tag"] for hashtag in all_hashtags]
+            for cant_item in cannot_coexist:
+                if remaining_tags.__contains__(cant_item):
+                    print(f"\t\t*{cant_item}")
+
+    if has_error == True:
+        sys.exit(1)
 
 
-def is_release_notes_without_email(is_email, is_release_notes):
-    """Check forthe invalid condition of being #release_notes but #no_email"""
-    if is_release_notes and not is_email:
-        print("Release Notes should go to Email too")
-        return True
-    return False
-
-
-def check_valid_email_hashtag(msg):
-    '''Check if commit msg has a valid email hashtag'''
-    return _has_valid_hashtag(msg, "email")
-
-
-def check_valid_release_notes_hashtag(msg):
-    '''Check if commit msg has a valid release notes hashtag'''
-    return _has_valid_hashtag(msg, "release_notes")
-
-
-def _has_valid_hashtag(msg, tag_base_name):
-    """Check if commit message has specific tag by passing the commit message text as 'msg' and
-    the tag base name without the '# 'and '#no_' as tag_base_name
-
-    Ex.: _has_valid_hashtag("Blá blá blá #email", "email")
-    """
-    tag = f"#{tag_base_name}"
-    no_tag = f"#no_{tag_base_name}"
-
-    is_tag = str(msg).__contains__(tag)
-    is_no_tag = str(msg).__contains__(no_tag)
-
-    if is_tag and is_no_tag:
-        print(
-            f"\n\nERROR: You can {no_tag} or {tag}, you can't have both\n\n")
-        return False, False
-
-    elif is_tag:
-        return True, True
-
-    elif is_no_tag:
-        return True, False
-
-    elif not is_tag and not is_no_tag:
-        print(
-            f"""\nERROR: Your commit message need to have one {tag_base_name} hashtag like:
-              * {no_tag},
-              * {tag}\n""")
-        return False, False
-
-
-def check_correct_files_changed(is_email, is_release_notes):
-    '''if is masked with #email and #release_notes check 
-    if the correct files were changes along with it too'''
+def required_files_modified_and_staged(all_hashtags):
+    has_error = False
     staged_files = _get_staged_files()
 
-    correct_email = _is_correct_files_updated(
-        "email", branch, staged_files) if is_email else True
+    for hashtag in all_hashtags:
+        files_required = hashtag["required_files"]
+        if files_required.__len__() > 0:
+            for file in files_required:
+                file = replace_placeholder_value(file)
+                if not staged_files.__contains__(["M", file]):
+                    has_error = True
+                    hashtag_name = hashtag["tag"]
+                    print(
+                        f"\nERROR: the {hashtag_name} require the file '{file}' to be modified and stage.")
+                    print(
+                        f"You most likely forgot to update '{file}' with the information about your implementation or bug fix.")
 
-    is_release_notes_correct = _is_correct_files_updated(
-        "release_notes", branch, staged_files) if is_release_notes else True
-
-    if not correct_email or not is_release_notes_correct:
+    if has_error:
         sys.exit(1)
 
 
-def _is_correct_files_updated(base_name, branch, staged_files):
-    '''Check for given tag if associated branch file was staged
-    Ex: base_name=email, branch=dev -> check if next_version_email_dev.md is modified and staged'''
-    base_file = f"next_version_{base_name}_{branch}.md"
-
-    if not staged_files.__contains__(['M', base_file]):
-        print(
-            f"\nERROR: The commit message is marked as #{base_name}, so you must update the file '{base_file}' with information about your implementation.\n")
-        return False
-    return True
+def replace_placeholder_value(text):
+    branch = _get_current_branch()
+    text = str(text).replace("OVERRIDEWITHBRANCHNAME", branch)
+    return text
 
 
 def _get_current_branch():
     '''return the current branch'''
-    process = subprocess.Popen(["git", "rev-parse", "--abbrev-ref", "HEAD", "--"],
-                               shell=False, stdout=subprocess.PIPE)
-    output = process.communicate()[0]
-    out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
-    out_text = [l.split("\\t") for l in out_text]
-    return out_text[0][0]
+    if debug:
+        return "Dev"
+
+    global current_branch
+    if current_branch == None:
+        process = subprocess.Popen(["git", "rev-parse", "--abbrev-ref", "HEAD", "--"],
+                                   shell=False, stdout=subprocess.PIPE)
+        output = process.communicate()[0]
+        out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
+        out_text = [l.split("\\t") for l in out_text]        
+
+        current_branch = out_text[0][0]
+
+        return current_branch
+    return current_branch
 
 
 def _get_staged_files():
+    if debug:
+        return [["M", "release_notes_Dev.md"], ["M", "email_Dev.md"]]
     '''return a list of current staged files for this commit'''
     process = subprocess.Popen(["git", "diff", "--cached", "--name-status"],
                                shell=False, stdout=subprocess.PIPE)
     output = process.communicate()[0]
     out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
     out_text = [l.split("\\t") for l in out_text]
+    
     return out_text
 
 
 if __name__ == "__main__":
-    validate_commit_message()
+    validate()

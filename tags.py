@@ -1,5 +1,7 @@
 email_hashtag = {"group": "email",
                  "tag": "#email",
+                 # OVERRIDEWITHBRANCHNAME see methods:
+                 # replace_placeholder_value() and required_files_modified_and_staged()
                  "required_files": ["email_OVERRIDEWITHBRANCHNAME.md"],
                  "cannot_coexist": ["#no_email"]}
 

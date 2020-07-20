@@ -43,7 +43,7 @@ def validate():
     msg_file_path = ".\\msg.txt" if debug else sys.argv[1]
     commit_msg = open(msg_file_path).read()
 
-    hashtag_on_msg(commit_msg, all_hashtags)
+    hashtag_inside_msg(commit_msg, all_hashtags)
     remove_hashtags_not_in_msg(all_hashtags)
     at_least_one_of_each_group(all_hashtags)
     can_hashtags_coexist(all_hashtags)
@@ -62,7 +62,8 @@ def get_all_group_tags(all_hashtags):
     return all_groups
 
 
-def hashtag_on_msg(commit_msg, hashtag):
+def hashtag_inside_msg(commit_msg, all_hashtags):
+    for hashtag in all_hashtags:
     if commit_msg.__contains__(hashtag["tag"]):
         hashtag["is_in_commit_msg"] = True
     else:

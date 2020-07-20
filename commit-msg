@@ -5,7 +5,7 @@ import sys
 import subprocess
 import tags
 
-debug = True
+debug = False
 
 if debug:
     import random

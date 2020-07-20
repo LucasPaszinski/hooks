@@ -79,9 +79,9 @@ def remove_hashtags_not_in_msg(all_hashtags):
         all_hashtags.remove(not_in_commit)
 
 
-def at_least_one_of_each_group(remaning_hashtags, all_group_tags):
+def at_least_one_of_each_group(remaning_hashtags):
     has_error = False
-    all_group_tags = list(all_group_tags)
+    all_group_tags = get_all_group_tags(_all_hashtags)
     for hashtag in remaning_hashtags:
         if all_group_tags.__contains__(hashtag["group"]):
             all_group_tags.remove(hashtag["group"])

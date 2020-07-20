@@ -38,23 +38,14 @@ _all_hashtags = [email_hashtag, no_email_hashtag,
 
 
 def validate():
-    if debug:
-        msg_file_path = ".\\msg.txt"
-    else:
-        hook_file, msg_file_path = sys.argv
+    global all_hashtags   
 
+    msg_file_path = ".\\msg.txt" if debug else sys.argv[1]
     commit_msg = open(msg_file_path).read()
 
-    global all_hashtags
-
-    for hashtag in all_hashtags:
-        hashtag_on_msg(commit_msg, hashtag)
-
-    all_group_tags = get_all_group_tags(all_hashtags)
-
-    all_hashtags = remove_hashtags_not_in_msg(all_hashtags)
-
-    at_least_one_of_each_group(all_hashtags, all_group_tags)
+    hashtag_on_msg(commit_msg, all_hashtags)
+    remove_hashtags_not_in_msg(all_hashtags)
+    at_least_one_of_each_group(all_hashtags)
     can_hashtags_coexist(all_hashtags)
     required_files_modified_and_staged(all_hashtags)
 

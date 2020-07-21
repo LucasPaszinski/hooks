@@ -3,8 +3,8 @@
 import argparse
 import sys
 import subprocess
-import tags
-import git
+import lib.tags as tags
+import lib.git as git
 
 debug = False
 
@@ -21,7 +21,7 @@ all_hashtags = tags.all_hashtags()
 def validate():
     global all_hashtags
 
-    msg_file_path = ".\\msg.txt" if debug else sys.argv[1]
+    msg_file_path = ".\\lib\\debug_msg.txt" if debug else sys.argv[1]
     commit_msg = open(msg_file_path).read()
 
     hashtag_inside_msg(commit_msg, all_hashtags)
@@ -164,7 +164,7 @@ def _get_staged_files():
             []
         ]
 
-    git.get_staged_files()
+    return git.get_staged_files()
 
 
 if __name__ == "__main__":

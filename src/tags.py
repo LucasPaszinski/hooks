@@ -2,7 +2,8 @@ email_hashtag = {"group": "email",
                  "tag": "#email",
                  # OVERRIDEWITHBRANCHNAME see methods:
                  # replace_placeholder_value() and required_files_modified_and_staged()
-                 "required_files": ["email_OVERRIDEWITHBRANCHNAME.md"],
+                 # paths use this '/' not that '\'
+                 "required_files": ['Version Notes/email.md'], # ["email_OVERRIDEWITHBRANCHNAME.md"],
                  "cannot_coexist": ["#no_email"]}
 
 no_email_hashtag = {"group": "email",
@@ -14,7 +15,7 @@ release_notes_hashtag = {"group": "release_notes",
                          "tag": "#release_notes",
                          # OVERRIDEWITHBRANCHNAME see methods:
                          # replace_placeholder_value() and required_files_modified_and_staged()
-                         "required_files": ["release_notes_OVERRIDEWITHBRANCHNAME.md"], 
+                         "required_files": ['Version Notes/release_notes.md'], # ["release_notes_OVERRIDEWITHBRANCHNAME.md"], 
                          "cannot_coexist": ["#no_release_notes", "#no_email"]}
 
 no_release_notes_hashtag = {"group": "release_notes",

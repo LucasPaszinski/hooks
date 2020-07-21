@@ -56,7 +56,7 @@ def add_new_version_on_markdown(root, file, new_version_text):
 
 
 if __name__ == "__main__":
-    root = "..\\.."
+    root = "..\\..\\.."
     email_md = "Version Notes\\email.md"
     release_md = "Version Notes\\release_notes.md"
     

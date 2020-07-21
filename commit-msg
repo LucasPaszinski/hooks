@@ -4,6 +4,7 @@ import argparse
 import sys
 import subprocess
 import tags
+import git
 
 debug = False
 
@@ -147,18 +148,10 @@ def _get_current_branch():
     '''return the current branch'''
     if debug:
         return "dev"
-
+        
     global current_branch
     if current_branch == None:
-        process = subprocess.Popen(["git", "rev-parse", "--abbrev-ref", "HEAD", "--"],
-                                   shell=False, stdout=subprocess.PIPE)
-        output = process.communicate()[0]
-        out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
-        out_text = [l.split("\\t") for l in out_text]
-
-        current_branch = out_text[0][0]
-
-        return current_branch
+        current_branch = git.get_current_branch()
     return current_branch
 
 
@@ -171,14 +164,7 @@ def _get_staged_files():
             []
         ]
 
-    process = subprocess.Popen(["git", "diff", "--cached", "--name-status"],
-                               shell=False, stdout=subprocess.PIPE)
-
-    output = process.communicate()[0]
-    out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
-    out_text = [l.split("\\t") for l in out_text]
-
-    return out_text
+    git.get_staged_files()
 
 
 if __name__ == "__main__":

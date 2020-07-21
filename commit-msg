@@ -3,8 +3,8 @@
 import argparse
 import sys
 import subprocess
-import lib.tags as tags
-import lib.git as git
+import src.tags as tags
+import src.git as git
 
 debug = False
 

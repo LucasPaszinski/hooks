@@ -4,7 +4,7 @@ import subprocess
 def get_current_branch():
     '''return the current branch'''
     process = subprocess.Popen(["git", "rev-parse", "--abbrev-ref", "HEAD", "--"],
-                               shell=False, stdout=subprocess.PIPE)
+                               shell=False, stdout=subprocess.PIPE,)
     output = process.communicate()[0]
     out_text = str(output).replace("b'", "").replace("'", "").split("\\n")
     out_text = [l.split("\\t") for l in out_text]
